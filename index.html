@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carte OpenStreetMap Plein écran</title>
+  <!-- Feuille de style principale de Leaflet depuis le CDN officiel -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-QV7L9F+9f+Fq9WlH0I1GtuuBlxUF5PM/TWHZ9gPoM0k="
+    crossorigin=""
+  >
+  <style>
+    /* Réinitialise les marges et s'assure que le body et le html occupent tout l'espace */
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    /* Conteneur qui accueillera la carte Leaflet */
+    #map {
+      width: 100vw;  /* Utilise toute la largeur de la fenêtre */
+      height: 100vh; /* Utilise toute la hauteur de la fenêtre */
+    }
+
+    /* Supprime toute possibilité de barre de défilement */
+    body {
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <!-- Élément qui contiendra la carte Leaflet -->
+  <div id="map"></div>
+
+  <!-- Script principal de Leaflet depuis le CDN officiel -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    // Crée l'instance de carte et la centre sur Paris avec un zoom initial de 12
+    const map = L.map('map', {
+      zoomControl: true,   // Active les contrôles de zoom +/- par défaut
+      scrollWheelZoom: true, // Active le zoom à la molette
+      dragging: true,      // Permet le déplacement en drag
+      attributionControl: true
+    }).setView([48.8566, 2.3522], 12);
+
+    // Ajoute la couche de tuiles OpenStreetMap avec attribution obligatoire
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      minZoom: 2,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributeurs'
+    }).addTo(map);
+
+    // Active le zoom au geste de pincement pour les appareils tactiles
+    map.touchZoom.enable();
+    map.doubleClickZoom.enable();
+
+    // S'assure que la carte s'ajuste automatiquement lors d'un redimensionnement de la fenêtre
+    window.addEventListener('resize', () => {
+      map.invalidateSize();
+    });
+  </script>
+</body>
+</html>
