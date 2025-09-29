@@ -195,16 +195,17 @@
       }
 
       const [latest, ...history] = records;
-      const label = latest.libelle_qualification || latest.conclusion_conformite || latest.conclusion || latest.code_qualification || 'Qualité inconnue';
-      const date = latest.date_prelevement || latest.date_analyse || latest.date_mesure;
-      const reseau = latest.nom_reseau || latest.libelle_reseau;
+      const label = latest.label || 'Qualité inconnue';
       const additional = [];
 
-      if (date) {
-        additional.push(`<div>Dernier prélèvement : <time datetime="${date}">${new Date(date).toLocaleDateString('fr-FR')}</time></div>`);
+      if (latest.dateIso) {
+        additional.push(`<div>Dernier prélèvement : <time datetime="${latest.dateIso}">${latest.dateDisplay}</time></div>`);
       }
-      if (reseau) {
-        additional.push(`<div>Réseau : ${escapeHtml(reseau)}</div>`);
+      if (latest.network) {
+        additional.push(`<div>Réseau : ${escapeHtml(latest.network)}</div>`);
+      }
+      if (latest.measurement) {
+        additional.push(`<div>Résultat : ${escapeHtml(latest.measurement)}</div>`);
       }
 
       let color = '#1a9641';
@@ -217,12 +218,10 @@
       const historyItems = [latest, ...history]
         .slice(0, 50)
         .map((record) => {
-          const recordDate = record.date_prelevement || record.date_analyse || record.date_mesure;
-          const recordLabel = record.libelle_qualification || record.conclusion_conformite || record.conclusion || record.code_qualification || 'Qualité inconnue';
-          const formattedDate = recordDate
-            ? new Date(recordDate).toLocaleDateString('fr-FR')
-            : 'Date inconnue';
-          return `<li><span class="history-date">${escapeHtml(formattedDate)}</span><span class="history-status">${escapeHtml(recordLabel)}</span></li>`;
+          const formattedDate = record.dateDisplay || 'Date inconnue';
+          const statusText = record.label || 'Qualité inconnue';
+          const details = record.measurement ? ` — ${record.measurement}` : '';
+          return `<li><span class="history-date">${escapeHtml(formattedDate)}</span><span class="history-status">${escapeHtml(statusText + details)}</span></li>`;
         })
         .join('');
 
@@ -234,110 +233,115 @@
       };
     }
 
-    async function fetchFromHubeau(endpoint, params) {
-      const url = new URL(`https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/${endpoint}`);
-      Object.entries(params || {}).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.set(key, value);
+    function normalizeDate(value) {
+      if (!value) {
+        return { iso: null, display: null };
+      }
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return { iso: null, display: null };
+      }
+      const iso = date.toISOString();
+      return {
+        iso,
+        display: date.toLocaleDateString('fr-FR')
+      };
+    }
+
+    function normalizeRecord(record) {
+      const fields = record?.fields || record || {};
+      const label = fields.libelle_qualification
+        || fields.conclusion_conformite
+        || fields.conclusion
+        || fields.resultat_conformite
+        || fields.qualification
+        || null;
+
+      const { iso: dateIso, display: dateDisplay } = normalizeDate(
+        fields.date_prelevement
+        || fields.date_prelevement_ars
+        || fields.date_analyse
+        || fields.date
+      );
+
+      const parameter = fields.libelle_parametre || fields.parametre || null;
+      const rawValue = fields.resultat || fields.valeur || fields.resultat_analyse || fields.quantite || null;
+      const unit = fields.unite || fields.libelle_unite || fields.unite_parametre || null;
+      const measurementParts = [];
+      if (parameter) {
+        measurementParts.push(parameter);
+      }
+      if (rawValue !== null && rawValue !== undefined && rawValue !== '') {
+        measurementParts.push(`${rawValue}${unit ? ` ${unit}` : ''}`.trim());
+      }
+      if (fields.conclusion_conformite && fields.conclusion_conformite !== label) {
+        measurementParts.push(fields.conclusion_conformite);
+      }
+
+      const measurement = measurementParts.join(' — ');
+
+      return {
+        label,
+        dateIso,
+        dateDisplay,
+        network: fields.nom_reseau || fields.libelle_reseau || fields.nom_distribution || fields.nom_commune || null,
+        measurement: measurement || null
+      };
+    }
+
+    function sortRecords(records) {
+      return records.slice().sort((a, b) => {
+        if (!a.dateIso && !b.dateIso) {
+          return 0;
         }
+        if (!a.dateIso) {
+          return 1;
+        }
+        if (!b.dateIso) {
+          return -1;
+        }
+        return b.dateIso.localeCompare(a.dateIso);
       });
+    }
+
+    async function fetchWaterQuality(city) {
+      const url = new URL('https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/qualite-de-l-eau-potable-france/records');
+      url.searchParams.set('where', `code_commune="${city.codeCommune}"`);
+      url.searchParams.set('order_by', 'date_prelevement desc');
+      url.searchParams.set('limit', '50');
+      url.searchParams.set('timezone', 'UTC');
 
       const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+
       if (response.status === 404) {
-        return { data: null, status: 404 };
+        return null;
       }
       if (!response.ok) {
         throw new Error(`Réponse ${response.status}`);
       }
 
+      let json;
       try {
-        const json = await response.json();
-        return { data: json?.data ?? null, status: response.status };
+        json = await response.json();
       } catch (error) {
-        throw new Error('Réponse illisible de l\'API');
+        throw new Error('Réponse illisible de l\'API OpenDataSoft');
       }
-    }
 
-    function extractUdiCodes(communesData) {
-      const codes = new Set();
-      communesData.forEach((entry) => {
-        const rawCode = entry?.code_udi;
-        if (!rawCode) {
-          return;
-        }
-        if (Array.isArray(rawCode)) {
-          rawCode.filter(Boolean).forEach((value) => codes.add(String(value)));
-          return;
-        }
-        String(rawCode)
-          .split(/[\s,;]+/)
-          .map((value) => value.trim())
-          .filter(Boolean)
-          .forEach((value) => codes.add(value));
-      });
-      return Array.from(codes);
-    }
+      const results = Array.isArray(json?.results)
+        ? json.results
+        : Array.isArray(json?.records)
+          ? json.records
+          : [];
 
-    function normalizeDate(value) {
-      if (!value) {
-        return null;
-      }
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? null : date.toISOString();
-    }
+      const normalized = results
+        .map((record) => normalizeRecord(record))
+        .filter((record) => record && (record.label || record.dateIso || record.measurement));
 
-    function sortAnalysesByDate(records) {
-      return records
-        .slice()
-        .sort((a, b) => {
-          const dateB = normalizeDate(b.date_prelevement || b.date_analyse || b.date_mesure);
-          const dateA = normalizeDate(a.date_prelevement || a.date_analyse || a.date_mesure);
-          if (!dateA && !dateB) {
-            return 0;
-          }
-          if (!dateA) {
-            return 1;
-          }
-          if (!dateB) {
-            return -1;
-          }
-          return dateB.localeCompare(dateA);
-        });
-    }
-
-    async function fetchWaterQuality(city) {
-      const communesResponse = await fetchFromHubeau('repartitions_communes', {
-        code_commune: city.codeCommune,
-        size: 50
-      });
-
-      const communesData = Array.isArray(communesResponse.data)
-        ? communesResponse.data
-        : [];
-
-      const udiCodes = extractUdiCodes(communesData);
-      if (!udiCodes.length) {
+      if (!normalized.length) {
         return null;
       }
 
-      const analysesResults = await Promise.allSettled(
-        udiCodes.map((codeUdi) =>
-          fetchFromHubeau('analyses', {
-            code_udi: codeUdi,
-            size: 50
-          })
-        )
-      );
-
-      const aggregated = analysesResults
-        .filter((result) => result.status === 'fulfilled' && Array.isArray(result.value.data))
-        .flatMap((result) => result.value.data);
-
-      if (!aggregated.length) {
-        return null;
-      }
-
-      return sortAnalysesByDate(aggregated).slice(0, 50);
+      return sortRecords(normalized).slice(0, 50);
     }
 
     async function plotCities() {
