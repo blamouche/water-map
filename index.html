@@ -186,12 +186,15 @@
     }
 
     async function fetchWaterQuality(city) {
-      const url = new URL('https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/analyses_tr');
+      const url = new URL('https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/analyses');
       url.searchParams.set('code_commune', city.codeCommune);
       url.searchParams.set('size', '1');
       url.searchParams.set('orderby', 'date_prelevement desc');
 
       const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+      if (response.status === 404) {
+        return null;
+      }
       if (!response.ok) {
         throw new Error(`Réponse ${response.status}`);
       }
