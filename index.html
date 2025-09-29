@@ -234,25 +234,110 @@
       };
     }
 
-    async function fetchWaterQuality(city) {
-      const url = new URL('https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/analyses');
-      url.searchParams.set('code_commune', city.codeCommune);
-      url.searchParams.set('size', '50');
-      url.searchParams.set('orderby', 'date_prelevement desc');
+    async function fetchFromHubeau(endpoint, params) {
+      const url = new URL(`https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/${endpoint}`);
+      Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.set(key, value);
+        }
+      });
 
       const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
       if (response.status === 404) {
-        return null;
+        return { data: null, status: 404 };
       }
       if (!response.ok) {
         throw new Error(`Réponse ${response.status}`);
       }
 
-      const json = await response.json();
-      if (json && Array.isArray(json.data) && json.data.length) {
-        return json.data;
+      try {
+        const json = await response.json();
+        return { data: json?.data ?? null, status: response.status };
+      } catch (error) {
+        throw new Error('Réponse illisible de l\'API');
       }
-      return null;
+    }
+
+    function extractUdiCodes(communesData) {
+      const codes = new Set();
+      communesData.forEach((entry) => {
+        const rawCode = entry?.code_udi;
+        if (!rawCode) {
+          return;
+        }
+        if (Array.isArray(rawCode)) {
+          rawCode.filter(Boolean).forEach((value) => codes.add(String(value)));
+          return;
+        }
+        String(rawCode)
+          .split(/[\s,;]+/)
+          .map((value) => value.trim())
+          .filter(Boolean)
+          .forEach((value) => codes.add(value));
+      });
+      return Array.from(codes);
+    }
+
+    function normalizeDate(value) {
+      if (!value) {
+        return null;
+      }
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    }
+
+    function sortAnalysesByDate(records) {
+      return records
+        .slice()
+        .sort((a, b) => {
+          const dateB = normalizeDate(b.date_prelevement || b.date_analyse || b.date_mesure);
+          const dateA = normalizeDate(a.date_prelevement || a.date_analyse || a.date_mesure);
+          if (!dateA && !dateB) {
+            return 0;
+          }
+          if (!dateA) {
+            return 1;
+          }
+          if (!dateB) {
+            return -1;
+          }
+          return dateB.localeCompare(dateA);
+        });
+    }
+
+    async function fetchWaterQuality(city) {
+      const communesResponse = await fetchFromHubeau('communes', {
+        code_commune: city.codeCommune,
+        size: 20
+      });
+
+      const communesData = Array.isArray(communesResponse.data)
+        ? communesResponse.data
+        : [];
+
+      const udiCodes = extractUdiCodes(communesData);
+      if (!udiCodes.length) {
+        return null;
+      }
+
+      const analysesResults = await Promise.allSettled(
+        udiCodes.map((codeUdi) =>
+          fetchFromHubeau('analyses', {
+            code_udi: codeUdi,
+            size: 50
+          })
+        )
+      );
+
+      const aggregated = analysesResults
+        .filter((result) => result.status === 'fulfilled' && Array.isArray(result.value.data))
+        .flatMap((result) => result.value.data);
+
+      if (!aggregated.length) {
+        return null;
+      }
+
+      return sortAnalysesByDate(aggregated).slice(0, 50);
     }
 
     async function plotCities() {
