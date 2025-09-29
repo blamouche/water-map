@@ -71,6 +71,32 @@
       color: #d73027;
       font-weight: 600;
     }
+
+    .city-popup details {
+      margin-top: 0.75rem;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 0.5rem;
+    }
+
+    .history-list {
+      margin: 0.5rem 0 0;
+      padding-left: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .history-list li {
+      margin-bottom: 0.4rem;
+    }
+
+    .history-date {
+      font-weight: 600;
+    }
+
+    .history-status {
+      display: block;
+      color: #444;
+    }
   </style>
 </head>
 <body>
@@ -150,8 +176,17 @@
     };
     legend.addTo(map);
 
-    function interpretQuality(record) {
-      if (!record) {
+    function escapeHtml(value = '') {
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function interpretQuality(records) {
+      if (!records || !records.length) {
         return {
           color: '#666666',
           status: 'Aucune donnée récente',
@@ -159,16 +194,17 @@
         };
       }
 
-      const label = record.libelle_qualification || record.conclusion_conformite || record.conclusion || record.code_qualification || 'Qualité inconnue';
-      const date = record.date_prelevement || record.date_analyse || record.date_mesure;
-      const reseau = record.nom_reseau || record.libelle_reseau;
+      const [latest, ...history] = records;
+      const label = latest.libelle_qualification || latest.conclusion_conformite || latest.conclusion || latest.code_qualification || 'Qualité inconnue';
+      const date = latest.date_prelevement || latest.date_analyse || latest.date_mesure;
+      const reseau = latest.nom_reseau || latest.libelle_reseau;
       const additional = [];
 
       if (date) {
         additional.push(`<div>Dernier prélèvement : <time datetime="${date}">${new Date(date).toLocaleDateString('fr-FR')}</time></div>`);
       }
       if (reseau) {
-        additional.push(`<div>Réseau : ${reseau}</div>`);
+        additional.push(`<div>Réseau : ${escapeHtml(reseau)}</div>`);
       }
 
       let color = '#1a9641';
@@ -178,17 +214,30 @@
         color = '#fdae61';
       }
 
+      const historyItems = [latest, ...history]
+        .slice(0, 50)
+        .map((record) => {
+          const recordDate = record.date_prelevement || record.date_analyse || record.date_mesure;
+          const recordLabel = record.libelle_qualification || record.conclusion_conformite || record.conclusion || record.code_qualification || 'Qualité inconnue';
+          const formattedDate = recordDate
+            ? new Date(recordDate).toLocaleDateString('fr-FR')
+            : 'Date inconnue';
+          return `<li><span class="history-date">${escapeHtml(formattedDate)}</span><span class="history-status">${escapeHtml(recordLabel)}</span></li>`;
+        })
+        .join('');
+
       return {
         color,
-        status: label,
-        details: additional.join('')
+        status: escapeHtml(label),
+        details: additional.join(''),
+        history: historyItems
       };
     }
 
     async function fetchWaterQuality(city) {
       const url = new URL('https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/analyses');
       url.searchParams.set('code_commune', city.codeCommune);
-      url.searchParams.set('size', '1');
+      url.searchParams.set('size', '50');
       url.searchParams.set('orderby', 'date_prelevement desc');
 
       const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
@@ -201,7 +250,7 @@
 
       const json = await response.json();
       if (json && Array.isArray(json.data) && json.data.length) {
-        return json.data[0];
+        return json.data;
       }
       return null;
     }
@@ -243,6 +292,7 @@
               <h2>${city.name}</h2>
               <div>${interpretation.status}</div>
               ${interpretation.details || ''}
+              ${interpretation.history ? `<details><summary>50 derniers prélèvements</summary><ul class="history-list">${interpretation.history}</ul></details>` : ''}
               <div style="margin-top:0.5rem;font-size:0.85rem;color:#555;">Code commune INSEE : ${city.codeCommune}</div>
             </div>
           `;
