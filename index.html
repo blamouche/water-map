@@ -306,9 +306,9 @@
     }
 
     async function fetchWaterQuality(city) {
-      const communesResponse = await fetchFromHubeau('communes', {
+      const communesResponse = await fetchFromHubeau('repartitions_communes', {
         code_commune: city.codeCommune,
-        size: 20
+        size: 50
       });
 
       const communesData = Array.isArray(communesResponse.data)
