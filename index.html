@@ -3,68 +3,258 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Carte OpenStreetMap Plein écran</title>
+  <title>Qualité de l'eau potable - 30 plus grandes villes de France</title>
   <!-- Feuille de style principale de Leaflet depuis le CDN officiel -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-
     crossorigin=""
   >
   <style>
-    /* Réinitialise les marges et s'assure que le body et le html occupent tout l'espace */
     html, body {
       height: 100%;
       margin: 0;
     }
 
-    /* Conteneur qui accueillera la carte Leaflet */
-    #map {
-      width: 100vw;  /* Utilise toute la largeur de la fenêtre */
-      height: 100vh; /* Utilise toute la hauteur de la fenêtre */
-    }
-
-    /* Supprime toute possibilité de barre de défilement */
     body {
       overflow: hidden;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f5f5;
+    }
+
+    #map {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .legend {
+      background: white;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .legend strong {
+      font-size: 1rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .city-popup {
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .city-popup h2 {
+      margin: 0 0 0.4rem;
+      font-size: 1.1rem;
+    }
+
+    .city-popup time {
+      font-weight: 600;
+    }
+
+    .city-popup .error {
+      color: #d73027;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <!-- Élément qui contiendra la carte Leaflet -->
   <div id="map"></div>
 
-  <!-- Script principal de Leaflet depuis le CDN officiel -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-
     crossorigin=""
   ></script>
   <script>
-    // Crée l'instance de carte et la centre sur Paris avec un zoom initial de 12
-    const map = L.map('map', {
-      zoomControl: true,   // Active les contrôles de zoom +/- par défaut
-      scrollWheelZoom: true, // Active le zoom à la molette
-      dragging: true,      // Permet le déplacement en drag
-      attributionControl: true
-    }).setView([48.8566, 2.3522], 12);
+    const cities = [
+      { name: 'Paris', codeCommune: '75056', lat: 48.8566, lon: 2.3522 },
+      { name: 'Marseille', codeCommune: '13055', lat: 43.2965, lon: 5.3698 },
+      { name: 'Lyon', codeCommune: '69123', lat: 45.7578, lon: 4.832 },
+      { name: 'Toulouse', codeCommune: '31555', lat: 43.6047, lon: 1.4442 },
+      { name: 'Nice', codeCommune: '06088', lat: 43.7102, lon: 7.262 },
+      { name: 'Nantes', codeCommune: '44109', lat: 47.2184, lon: -1.5536 },
+      { name: 'Montpellier', codeCommune: '34172', lat: 43.6108, lon: 3.8767 },
+      { name: 'Strasbourg', codeCommune: '67482', lat: 48.5734, lon: 7.7521 },
+      { name: 'Bordeaux', codeCommune: '33063', lat: 44.8378, lon: -0.5792 },
+      { name: 'Lille', codeCommune: '59350', lat: 50.6292, lon: 3.0573 },
+      { name: 'Rennes', codeCommune: '35238', lat: 48.1173, lon: -1.6778 },
+      { name: 'Reims', codeCommune: '51454', lat: 49.2583, lon: 4.0317 },
+      { name: 'Saint-Étienne', codeCommune: '42218', lat: 45.4397, lon: 4.3872 },
+      { name: 'Toulon', codeCommune: '83137', lat: 43.1242, lon: 5.928 },
+      { name: 'Le Havre', codeCommune: '76351', lat: 49.4944, lon: 0.1079 },
+      { name: 'Grenoble', codeCommune: '38185', lat: 45.1885, lon: 5.7245 },
+      { name: 'Dijon', codeCommune: '21231', lat: 47.322, lon: 5.0415 },
+      { name: 'Angers', codeCommune: '49007', lat: 47.4784, lon: -0.5632 },
+      { name: 'Nîmes', codeCommune: '30189', lat: 43.8367, lon: 4.3601 },
+      { name: 'Villeurbanne', codeCommune: '69266', lat: 45.7663, lon: 4.8797 },
+      { name: 'Clermont-Ferrand', codeCommune: '63113', lat: 45.7772, lon: 3.087 },
+      { name: 'Le Mans', codeCommune: '72181', lat: 48.0061, lon: 0.1996 },
+      { name: 'Aix-en-Provence', codeCommune: '13001', lat: 43.5297, lon: 5.4474 },
+      { name: 'Brest', codeCommune: '29019', lat: 48.3904, lon: -4.4861 },
+      { name: 'Tours', codeCommune: '37261', lat: 47.3941, lon: 0.6848 },
+      { name: 'Amiens', codeCommune: '80021', lat: 49.8941, lon: 2.2957 },
+      { name: 'Limoges', codeCommune: '87085', lat: 45.8336, lon: 1.2611 },
+      { name: 'Annecy', codeCommune: '74010', lat: 45.8992, lon: 6.1294 },
+      { name: 'Perpignan', codeCommune: '66136', lat: 42.6887, lon: 2.8948 },
+      { name: 'Boulogne-Billancourt', codeCommune: '92012', lat: 48.8357, lon: 2.2418 }
+    ];
 
-    // Ajoute la couche de tuiles OpenStreetMap avec attribution obligatoire
+    const map = L.map('map', {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      dragging: true,
+      attributionControl: true
+    }).setView([46.6, 2.4], 6);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       minZoom: 2,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributeurs'
     }).addTo(map);
 
-    // Active le zoom au geste de pincement pour les appareils tactiles
     map.touchZoom.enable();
     map.doubleClickZoom.enable();
 
-    // S'assure que la carte s'ajuste automatiquement lors d'un redimensionnement de la fenêtre
     window.addEventListener('resize', () => {
       map.invalidateSize();
     });
+
+    const markersLayer = L.layerGroup().addTo(map);
+
+    const legend = L.control({ position: 'bottomleft' });
+    legend.onAdd = () => {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = `
+        <strong>Qualité de l'eau potable</strong>
+        <div class="legend-item"><span class="legend-color" style="background:#1a9641"></span> Conforme</div>
+        <div class="legend-item"><span class="legend-color" style="background:#fdae61"></span> Sous surveillance</div>
+        <div class="legend-item"><span class="legend-color" style="background:#d7191c"></span> Non conforme / Restriction</div>
+        <div class="legend-item"><span class="legend-color" style="background:#666"></span> Donnée indisponible</div>
+      `;
+      return div;
+    };
+    legend.addTo(map);
+
+    function interpretQuality(record) {
+      if (!record) {
+        return {
+          color: '#666666',
+          status: 'Aucune donnée récente',
+          details: 'Les données de qualité n\'ont pas pu être récupérées pour cette commune.'
+        };
+      }
+
+      const label = record.libelle_qualification || record.conclusion_conformite || record.conclusion || record.code_qualification || 'Qualité inconnue';
+      const date = record.date_prelevement || record.date_analyse || record.date_mesure;
+      const reseau = record.nom_reseau || record.libelle_reseau;
+      const additional = [];
+
+      if (date) {
+        additional.push(`<div>Dernier prélèvement : <time datetime="${date}">${new Date(date).toLocaleDateString('fr-FR')}</time></div>`);
+      }
+      if (reseau) {
+        additional.push(`<div>Réseau : ${reseau}</div>`);
+      }
+
+      let color = '#1a9641';
+      if (/non conforme|non-conforme|restriction|interdiction/i.test(label)) {
+        color = '#d7191c';
+      } else if (/surveillance|sous réserve|attention|toléré|limite/i.test(label)) {
+        color = '#fdae61';
+      }
+
+      return {
+        color,
+        status: label,
+        details: additional.join('')
+      };
+    }
+
+    async function fetchWaterQuality(city) {
+      const url = new URL('https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/analyses_tr');
+      url.searchParams.set('code_commune', city.codeCommune);
+      url.searchParams.set('size', '1');
+      url.searchParams.set('orderby', 'date_prelevement desc');
+
+      const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+      if (!response.ok) {
+        throw new Error(`Réponse ${response.status}`);
+      }
+
+      const json = await response.json();
+      if (json && Array.isArray(json.data) && json.data.length) {
+        return json.data[0];
+      }
+      return null;
+    }
+
+    async function plotCities() {
+      const bounds = [];
+      const results = await Promise.allSettled(cities.map(async (city) => {
+        try {
+          const record = await fetchWaterQuality(city);
+          return { city, record };
+        } catch (error) {
+          console.error(`Erreur pour ${city.name}`, error);
+          return { city, error };
+        }
+      }));
+
+      results.forEach((result) => {
+        const { city, record, error } = result.value || {};
+        const interpretation = interpretQuality(error ? null : record);
+
+        const marker = L.circleMarker([city.lat, city.lon], {
+          radius: 10,
+          fillColor: interpretation.color,
+          color: '#ffffff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.9
+        });
+
+        const popupContent = error
+          ? `
+            <div class="city-popup">
+              <h2>${city.name}</h2>
+              <div class="error">Impossible de récupérer les données (${error.message || 'erreur inconnue'}).</div>
+            </div>
+          `
+          : `
+            <div class="city-popup">
+              <h2>${city.name}</h2>
+              <div>${interpretation.status}</div>
+              ${interpretation.details || ''}
+              <div style="margin-top:0.5rem;font-size:0.85rem;color:#555;">Code commune INSEE : ${city.codeCommune}</div>
+            </div>
+          `;
+
+        marker.bindPopup(popupContent);
+        marker.addTo(markersLayer);
+        bounds.push([city.lat, city.lon]);
+      });
+
+      if (bounds.length) {
+        map.fitBounds(bounds, { padding: [30, 30] });
+      }
+    }
+
+    plotCities();
   </script>
 </body>
 </html>
