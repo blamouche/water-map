@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Qualité de l'eau potable - 30 plus grandes villes de France</title>
+  <title>Cimetières en France - Données OpenStreetMap</title>
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -12,15 +12,13 @@
   <style>
     :root {
       color-scheme: light dark;
-      --background: #f5f7fb;
-      --text-color: #1e293b;
-      --header-gradient: linear-gradient(135deg, #0077b6, #0096c7);
-      --card-background: rgba(255, 255, 255, 0.96);
-      --border-color: rgba(15, 23, 42, 0.08);
-      --quality-good: #1a9850;
-      --quality-warning: #fdae61;
-      --quality-bad: #d73027;
-      --quality-unknown: #94a3b8;
+      --background: #f7f9fc;
+      --text-color: #1f2937;
+      --header-gradient: linear-gradient(135deg, #2c5282, #2b6cb0);
+      --card-background: rgba(255, 255, 255, 0.95);
+      --border-color: rgba(15, 23, 42, 0.1);
+      --marker-fill: #2f855a;
+      --marker-border: rgba(15, 23, 42, 0.75);
     }
 
     *, *::before, *::after {
@@ -41,27 +39,27 @@
     }
 
     header {
-      padding: clamp(1rem, 2vw + 1rem, 2.25rem) clamp(1rem, 2.5vw + 1rem, 3rem) clamp(0.5rem, 1vw + 0.5rem, 1.2rem);
+      padding: clamp(1.2rem, 2vw + 1rem, 2.5rem) clamp(1.2rem, 3vw + 1rem, 3rem) clamp(0.75rem, 1vw + 0.5rem, 1.3rem);
       background: var(--header-gradient);
       color: #fff;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.24);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
     }
 
     header h1 {
       margin: 0;
-      font-size: clamp(1.6rem, 1.8vw + 1.5rem, 2.6rem);
+      font-size: clamp(1.7rem, 2vw + 1.5rem, 2.8rem);
       letter-spacing: -0.01em;
     }
 
     header p {
-      margin: 0.65rem 0 0;
+      margin: 0.75rem 0 0;
       max-width: 68ch;
-      line-height: 1.55;
-      font-size: clamp(0.95rem, 1vw + 0.75rem, 1.1rem);
+      line-height: 1.6;
+      font-size: clamp(0.95rem, 1vw + 0.8rem, 1.15rem);
     }
 
     #status {
-      padding: 0.9rem clamp(1rem, 2.5vw + 0.5rem, 2.5rem);
+      padding: 0.9rem clamp(1rem, 3vw + 0.5rem, 2.75rem);
       background: #ffffff;
       color: inherit;
       box-shadow: inset 0 -1px 0 var(--border-color), 0 8px 24px rgba(15, 23, 42, 0.06);
@@ -70,9 +68,9 @@
     }
 
     #status.error {
-      background: #ffe4e6;
-      color: #be123c;
-      box-shadow: inset 0 -1px 0 rgba(190, 18, 60, 0.35), 0 8px 24px rgba(190, 18, 60, 0.2);
+      background: #fee2e2;
+      color: #b91c1c;
+      box-shadow: inset 0 -1px 0 rgba(185, 28, 28, 0.35), 0 8px 24px rgba(185, 28, 28, 0.18);
     }
 
     #map {
@@ -81,18 +79,18 @@
     }
 
     .leaflet-popup-content {
+      margin: 0;
       font-size: 0.95rem;
       line-height: 1.5;
-      margin: 0;
     }
 
     .popup {
-      max-width: 260px;
+      max-width: 280px;
     }
 
     .popup h2 {
       margin: 0 0 0.5rem;
-      font-size: 1.15rem;
+      font-size: 1.2rem;
       font-weight: 600;
       letter-spacing: -0.01em;
     }
@@ -103,25 +101,6 @@
 
     .popup-section strong {
       font-weight: 600;
-    }
-
-    .quality-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      background: rgba(15, 23, 42, 0.06);
-    }
-
-    .quality-dot {
-      width: 0.65rem;
-      height: 0.65rem;
-      border-radius: 50%;
-      background: currentColor;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
     }
 
     .legend {
@@ -153,7 +132,7 @@
     .legend li {
       display: flex;
       align-items: center;
-      gap: 0.55rem;
+      gap: 0.6rem;
     }
 
     .legend-swatch {
@@ -161,6 +140,7 @@
       height: 0.9rem;
       border-radius: 0.3rem;
       border: 1px solid rgba(15, 23, 42, 0.1);
+      background: var(--marker-fill);
     }
 
     .popup-note {
@@ -170,12 +150,12 @@
     }
 
     a {
-      color: #0b7285;
+      color: #2b6cb0;
     }
 
     @media (max-width: 640px) {
       header {
-        padding: 1.2rem 1.25rem 0.75rem;
+        padding: 1.2rem 1.25rem 0.8rem;
       }
 
       header p {
@@ -190,10 +170,10 @@
 </head>
 <body>
   <header>
-    <h1>Qualité de l'eau potable dans les 30 plus grandes villes françaises</h1>
+    <h1>Cimetières référencés sur OpenStreetMap</h1>
     <p>
-      Visualisation des derniers prélèvements publiés par l'API Hubeau pour les principales communes françaises.
-      Les marqueurs sont colorés selon la conclusion de conformité du dernier contrôle disponible.
+      Visualisation des lieux identifiés comme cimetières sur OpenStreetMap pour l'ensemble du territoire français.
+      Les marqueurs incluent les informations disponibles telles que le nom, l'adresse, l'affectation religieuse et le gestionnaire.
     </p>
   </header>
   <div id="status" role="status" aria-live="polite">Initialisation de la carte…</div>
@@ -204,44 +184,9 @@
     crossorigin=""
   ></script>
   <script>
-    const API_BASE_URL = 'https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable';
-
-    const cities = [
-      { name: 'Paris', codeCommune: '75056', population: 2145906, coordinates: [48.8566, 2.3522] },
-      { name: 'Marseille', codeCommune: '13055', population: 870321, coordinates: [43.2965, 5.3698] },
-      { name: 'Lyon', codeCommune: '69123', population: 522969, coordinates: [45.764, 4.8357] },
-      { name: 'Toulouse', codeCommune: '31555', population: 498003, coordinates: [43.6047, 1.4442] },
-      { name: 'Nice', codeCommune: '06088', population: 342669, coordinates: [43.7102, 7.262] },
-      { name: 'Nantes', codeCommune: '44109', population: 318808, coordinates: [47.2184, -1.5536] },
-      { name: 'Montpellier', codeCommune: '34172', population: 300278, coordinates: [43.6108, 3.8767] },
-      { name: 'Strasbourg', codeCommune: '67482', population: 287228, coordinates: [48.5734, 7.7521] },
-      { name: 'Bordeaux', codeCommune: '33063', population: 260958, coordinates: [44.8378, -0.5792] },
-      { name: 'Lille', codeCommune: '59350', population: 236234, coordinates: [50.6292, 3.0573] },
-      { name: 'Rennes', codeCommune: '35238', population: 217728, coordinates: [48.1173, -1.6778] },
-      { name: 'Reims', codeCommune: '51454', population: 182460, coordinates: [49.2583, 4.0317] },
-      { name: 'Saint-Étienne', codeCommune: '42218', population: 173089, coordinates: [45.4397, 4.3872] },
-      { name: 'Toulon', codeCommune: '83137', population: 176198, coordinates: [43.1242, 5.928] },
-      { name: 'Le Havre', codeCommune: '76351', population: 168290, coordinates: [49.4939, 0.1079] },
-      { name: 'Grenoble', codeCommune: '38185', population: 158454, coordinates: [45.1885, 5.7245] },
-      { name: 'Dijon', codeCommune: '21231', population: 156854, coordinates: [47.322, 5.0415] },
-      { name: 'Angers', codeCommune: '49007', population: 154508, coordinates: [47.4784, -0.5632] },
-      { name: 'Nîmes', codeCommune: '30189', population: 150672, coordinates: [43.8367, 4.36] },
-      { name: 'Villeurbanne', codeCommune: '69266', population: 154781, coordinates: [45.7719, 4.8902] },
-      { name: 'Clermont-Ferrand', codeCommune: '63113', population: 146734, coordinates: [45.7772, 3.087] },
-      { name: 'Le Mans', codeCommune: '72181', population: 143911, coordinates: [48.0061, 0.1996] },
-      { name: 'Aix-en-Provence', codeCommune: '13001', population: 147122, coordinates: [43.5297, 5.4474] },
-      { name: 'Brest', codeCommune: '29019', population: 139602, coordinates: [48.3904, -4.4861] },
-      { name: 'Tours', codeCommune: '37261', population: 136463, coordinates: [47.3941, 0.6848] },
-      { name: 'Amiens', codeCommune: '80021', population: 134706, coordinates: [49.8941, 2.2958] },
-      { name: 'Limoges', codeCommune: '87085', population: 132175, coordinates: [45.8336, 1.2611] },
-      { name: 'Annecy', codeCommune: '74010', population: 131766, coordinates: [45.8992, 6.1294] },
-      { name: 'Boulogne-Billancourt', codeCommune: '92012', population: 121722, coordinates: [48.8397, 2.2399] },
-      { name: 'Perpignan', codeCommune: '66136', population: 120158, coordinates: [42.6887, 2.8948] }
-    ];
+    const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 
     const statusElement = document.getElementById('status');
-    const numberFormatter = new Intl.NumberFormat('fr-FR');
-    const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' });
 
     function setStatus(message, isError = false) {
       statusElement.textContent = message;
@@ -257,184 +202,24 @@
         .replace(/'/g, '&#39;');
     }
 
-    function formatDate(isoDate) {
-      if (!isoDate) {
-        return null;
-      }
-      const parsed = new Date(isoDate);
-      if (Number.isNaN(parsed.getTime())) {
-        return null;
-      }
-      return dateFormatter.format(parsed);
-    }
-
-    const palette = {
-      good: getComputedStyle(document.documentElement).getPropertyValue('--quality-good').trim() || '#1a9850',
-      warning: getComputedStyle(document.documentElement).getPropertyValue('--quality-warning').trim() || '#fdae61',
-      bad: getComputedStyle(document.documentElement).getPropertyValue('--quality-bad').trim() || '#d73027',
-      unknown: getComputedStyle(document.documentElement).getPropertyValue('--quality-unknown').trim() || '#94a3b8'
-    };
-
-    function classifyQuality(sample, error) {
-      if (error) {
-        return {
-          color: palette.unknown,
-          label: 'Erreur lors de la récupération',
-          severity: 'error'
-        };
-      }
-
-      if (!sample) {
-        return {
-          color: palette.unknown,
-          label: 'Aucune donnée disponible',
-          severity: 'unknown'
-        };
-      }
-
-      const conclusionCode = (sample.conclusion_conformite_prelevement || '').toString().trim().toUpperCase();
-      const sanitizedCode = conclusionCode.replace(/[^A-Z]/g, '');
-      const rawConclusion = sample.libelle_conclusion_conformite_prelevement
-        || sample.mention_conformite
-        || sample.libelle_conclusion
-        || sample.conclusion
-        || '';
-      const conclusionLabel = rawConclusion.toString().trim();
-      const normalizedLabel = conclusionLabel.toLowerCase();
-
-      if (sanitizedCode === 'NC' || normalizedLabel.includes('non conforme') || normalizedLabel.includes('non-conforme')) {
-        return { color: palette.bad, label: conclusionLabel || 'Non conforme', severity: 'bad' };
-      }
-
-      if (['S', 'R', 'A'].includes(sanitizedCode) || normalizedLabel.includes('sous réserve') || normalizedLabel.includes('restriction') || normalizedLabel.includes('surveillance')) {
-        return { color: palette.warning, label: conclusionLabel || 'À surveiller', severity: 'warning' };
-      }
-
-      if (sanitizedCode === 'C' || normalizedLabel.includes('conforme')) {
-        return { color: palette.good, label: conclusionLabel || 'Conforme', severity: 'good' };
-      }
-
-      const fallbackLabel = conclusionLabel || 'Information disponible';
-      const severity = conclusionLabel ? 'warning' : 'unknown';
-      const color = conclusionLabel ? palette.warning : palette.unknown;
-      return { color, label: fallbackLabel, severity };
-    }
-
-    function buildPopup(city, sample, quality, error) {
-      const population = numberFormatter.format(city.population);
+    function formatAddress(tags = {}) {
       const parts = [
-        '<div class="popup">',
-        `<h2>${escapeHtml(city.name)}</h2>`,
-        `<div class="popup-section"><strong>Population municipale :</strong> ${population} habitants</div>`
-      ];
-
-      if (error) {
-        const message = escapeHtml(error.message || 'Erreur inconnue');
-        parts.push(`<div class="popup-section"><strong>Statut :</strong> <span class="quality-badge" style="color:${quality.color}"><span class="quality-dot"></span>${escapeHtml(quality.label)}</span></div>`);
-        parts.push(`<div class="popup-section" style="color:#be123c;">${message}</div>`);
-      } else if (!sample) {
-        parts.push(`<div class="popup-section"><strong>Statut :</strong> <span class="quality-badge" style="color:${quality.color}"><span class="quality-dot"></span>${escapeHtml(quality.label)}</span></div>`);
-        parts.push('<div class="popup-section">Aucun prélèvement publié n\'a été trouvé pour cette commune.</div>');
-      } else {
-        const formattedDate = formatDate(sample.date_prelevement);
-        const conclusion = quality.label ? escapeHtml(quality.label) : 'Conclusion non renseignée';
-        parts.push(`<div class="popup-section"><strong>Conclusion :</strong> <span class="quality-badge" style="color:${quality.color}"><span class="quality-dot"></span>${conclusion}</span></div>`);
-
-        if (formattedDate) {
-          parts.push(`<div class="popup-section"><strong>Dernier prélèvement :</strong> ${escapeHtml(formattedDate)}</div>`);
-        }
-
-        const codeUdi = sample.code_udi || sample.id_udi || sample.code_reseau || sample.code_udi_ars;
-        const nameUdi = sample.nom_udi || sample.nom_reseau_distribution || sample.nom_reseau || sample.service_distribution;
-        if (nameUdi || codeUdi) {
-          const udiLabel = [nameUdi, codeUdi ? `(${codeUdi})` : ''].filter(Boolean).join(' ');
-          parts.push(`<div class="popup-section"><strong>Réseau de distribution :</strong> ${escapeHtml(udiLabel)}</div>`);
-        }
-
-        const locationLabel = sample.libelle_lieu_prelevement || sample.libelle_point_prelevement || sample.nom_point_prelevement;
-        if (locationLabel) {
-          parts.push(`<div class="popup-section"><strong>Lieu de prélèvement :</strong> ${escapeHtml(locationLabel)}</div>`);
-        }
-
-        const arsName = sample.nom_ars || sample.nom_agence_regionale_sante || sample.libelle_ars;
-        const controlCode = sample.code_controle_sanit || sample.numero_controle || sample.code_controle;
-        if (arsName || controlCode) {
-          const authority = [arsName, controlCode ? `n° ${controlCode}` : ''].filter(Boolean).join(' ');
-          if (authority) {
-            parts.push(`<div class="popup-section"><strong>Autorité sanitaire :</strong> ${escapeHtml(authority)}</div>`);
-          }
-        }
-
-        const remarks = sample.observations || sample.commentaire || sample.commentaires;
-        if (remarks) {
-          parts.push(`<div class="popup-section"><strong>Observations :</strong> ${escapeHtml(remarks)}</div>`);
-        }
-      }
-
-      parts.push('<div class="popup-note">Source&nbsp;: <a href="https://hubeau.eaufrance.fr/page/api-qualite-eau-potable" target="_blank" rel="noopener">API Hubeau</a></div>');
-      parts.push('</div>');
-      return parts.join('');
+        tags['addr:housenumber'] && tags['addr:street']
+          ? `${tags['addr:housenumber']} ${tags['addr:street']}`
+          : tags['addr:street'],
+        tags['addr:postcode'],
+        tags['addr:city']
+      ].filter(Boolean);
+      return parts.join(', ');
     }
 
-    async function fetchLatestPrelevement(city) {
-      const params = new URLSearchParams({
-        code_commune: city.codeCommune,
-        size: '1',
-        orderby: 'date_prelevement desc'
-      });
-
-      const url = `${API_BASE_URL}/prelevements?${params.toString()}`;
-
-      try {
-        const response = await fetch(url, {
-          headers: {
-            Accept: 'application/json'
-          }
-        });
-
-        if (response.status === 404) {
-          return { city, sample: null, error: null };
-        }
-
-        if (response.status === 403) {
-          throw new Error('Accès interdit par l\'API (403). Vérifiez que cette page est servie depuis un domaine autorisé.');
-        }
-
-        if (!response.ok) {
-          throw new Error(`Réponse ${response.status}`);
-        }
-
-        const payload = await response.json();
-        const results = Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.prelevements)
-            ? payload.prelevements
-            : Array.isArray(payload?.results)
-              ? payload.results
-              : [];
-        const sample = results[0] || null;
-        return { city, sample, error: null };
-      } catch (err) {
-        console.error(`Erreur lors de la récupération du prélèvement pour ${city.name}`, err);
-        return { city, sample: null, error: err };
+    function formatReligion(tags = {}) {
+      const religion = tags.religion;
+      if (!religion) {
+        return null;
       }
-    }
-
-    function updateStatusSummary(entries) {
-      const total = entries.length;
-      const withData = entries.filter((entry) => entry.sample).length;
-      const missing = entries.filter((entry) => !entry.sample && !entry.error).length;
-      const errors = entries.filter((entry) => entry.error).length;
-
-      let message = `Dernier prélèvement disponible pour ${withData} ville${withData > 1 ? 's' : ''} sur ${total}.`;
-      if (missing) {
-        message += ` ${missing} commune${missing > 1 ? 's' : ''} sans donnée récente.`;
-      }
-      if (errors) {
-        message += ` ${errors} erreur${errors > 1 ? 's' : ''} lors de la récupération.`;
-      }
-
-      setStatus(message, errors > 0);
+      const normalized = religion.replace(/_/g, ' ');
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
     }
 
     const map = L.map('map', {
@@ -445,7 +230,7 @@
     }).setView([46.6, 2.5], 6);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
+      maxZoom: 18,
       minZoom: 2,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributeurs'
     }).addTo(map);
@@ -458,47 +243,157 @@
       container.innerHTML = `
         <h2>Légende</h2>
         <ul>
-          <li><span class="legend-swatch" style="background:${palette.good}"></span>Eau conforme</li>
-          <li><span class="legend-swatch" style="background:${palette.warning}"></span>Surveillance / restrictions</li>
-          <li><span class="legend-swatch" style="background:${palette.bad}"></span>Non conforme</li>
-          <li><span class="legend-swatch" style="background:${palette.unknown}"></span>Donnée indisponible</li>
+          <li><span class="legend-swatch"></span>Cimetière (amenity=grave_yard ou landuse=cemetery)</li>
         </ul>
       `;
       return container;
     };
     legend.addTo(map);
 
-    async function plotCities() {
-      setStatus('Récupération des derniers prélèvements pour 30 villes…');
-      const results = await Promise.all(cities.map((city) => fetchLatestPrelevement(city)));
+    function getCoordinates(element) {
+      if (!element) {
+        return null;
+      }
+      if (element.type === 'node' && typeof element.lat === 'number' && typeof element.lon === 'number') {
+        return [element.lat, element.lon];
+      }
+      if ((element.type === 'way' || element.type === 'relation') && element.center) {
+        const { lat, lon } = element.center;
+        if (typeof lat === 'number' && typeof lon === 'number') {
+          return [lat, lon];
+        }
+      }
+      return null;
+    }
+
+    function buildPopup(element) {
+      const tags = element.tags || {};
+      const name = tags.name || 'Cimetière sans nom';
+      const address = formatAddress(tags);
+      const religion = formatReligion(tags);
+      const operator = tags.operator || tags['operator:type'];
+      const denomination = tags.denomination;
+
+      const parts = [
+        '<div class="popup">',
+        `<h2>${escapeHtml(name)}</h2>`
+      ];
+
+      const typeLabel = element.type === 'node'
+        ? 'Point OSM'
+        : element.type === 'way'
+          ? 'Chemin OSM'
+          : element.type === 'relation'
+            ? 'Relation OSM'
+            : null;
+      if (typeLabel) {
+        parts.push(`<div class="popup-section"><strong>Type&nbsp;:</strong> ${escapeHtml(typeLabel)}</div>`);
+      }
+
+      if (address) {
+        parts.push(`<div class="popup-section"><strong>Adresse&nbsp;:</strong> ${escapeHtml(address)}</div>`);
+      }
+
+      if (religion) {
+        parts.push(`<div class="popup-section"><strong>Affectation religieuse&nbsp;:</strong> ${escapeHtml(religion)}</div>`);
+      }
+
+      if (denomination) {
+        parts.push(`<div class="popup-section"><strong>Dénomination&nbsp;:</strong> ${escapeHtml(denomination)}</div>`);
+      }
+
+      if (operator) {
+        parts.push(`<div class="popup-section"><strong>Gestionnaire&nbsp;:</strong> ${escapeHtml(operator)}</div>`);
+      }
+
+      const openingHours = tags.opening_hours;
+      if (openingHours) {
+        parts.push(`<div class="popup-section"><strong>Horaires&nbsp;:</strong> ${escapeHtml(openingHours)}</div>`);
+      }
+
+      parts.push('<div class="popup-note">Source&nbsp;: <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a> via <a href="https://overpass-api.de/" target="_blank" rel="noopener">Overpass API</a></div>');
+      parts.push('</div>');
+
+      return parts.join('');
+    }
+
+    async function fetchCemeteries() {
+      const query = `
+        [out:json][timeout:120];
+        area["ISO3166-1"="FR"][admin_level=2]->.france;
+        (
+          node["landuse"="cemetery"](area.france);
+          way["landuse"="cemetery"](area.france);
+          relation["landuse"="cemetery"](area.france);
+          node["amenity"="grave_yard"](area.france);
+          way["amenity"="grave_yard"](area.france);
+          relation["amenity"="grave_yard"](area.france);
+        );
+        out center tags;
+      `;
+
+      try {
+        setStatus('Chargement des cimetières depuis OpenStreetMap…');
+        const body = new URLSearchParams({ data: query });
+        const response = await fetch(OVERPASS_API_URL, {
+          method: 'POST',
+          body,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Réponse ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const elements = Array.isArray(payload?.elements) ? payload.elements : [];
+        return elements;
+      } catch (error) {
+        console.error('Erreur lors de la récupération des cimetières', error);
+        setStatus(`Impossible de récupérer les données : ${error.message || 'erreur inconnue'}`, true);
+        return [];
+      }
+    }
+
+    async function plotCemeteries() {
+      const elements = await fetchCemeteries();
+      if (!elements.length) {
+        return;
+      }
 
       const boundsCoordinates = [];
 
-      results.forEach(({ city, sample, error }) => {
-        const quality = classifyQuality(sample, error);
-        const marker = L.circleMarker(city.coordinates, {
-          radius: 8,
-          color: '#ffffff',
-          weight: 1.8,
+      elements.forEach((element) => {
+        const coordinates = getCoordinates(element);
+        if (!coordinates) {
+          return;
+        }
+
+        const marker = L.circleMarker(coordinates, {
+          radius: 5,
+          color: 'var(--marker-border)',
+          weight: 1,
           opacity: 1,
-          fillColor: quality.color,
-          fillOpacity: 0.9
+          fillColor: 'var(--marker-fill)',
+          fillOpacity: 0.85
         });
 
-        marker.bindPopup(buildPopup(city, sample, quality, error));
+        marker.bindPopup(buildPopup(element));
         marker.addTo(markersLayer);
-        boundsCoordinates.push(city.coordinates);
+        boundsCoordinates.push(coordinates);
       });
 
       if (boundsCoordinates.length) {
         const bounds = L.latLngBounds(boundsCoordinates);
-        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 7 });
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
       }
 
-      updateStatusSummary(results);
+      setStatus(`${elements.length.toLocaleString('fr-FR')} cimetières chargés depuis OpenStreetMap.`);
     }
 
-    plotCities();
+    plotCemeteries();
   </script>
 </body>
 </html>
